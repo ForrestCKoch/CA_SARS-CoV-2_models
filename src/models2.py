@@ -41,7 +41,7 @@ class StratifiedSEIR(object):
         :param t: the timepoint (not used)
         :param V: The current state, with shape (compartments, groups)
         """
-        N = V.sum(axis=0)
+        N = V.sum(axis=1)
         dV = np.zeros(V.shape)
 
         s_end = self.n_groups
@@ -49,7 +49,6 @@ class StratifiedSEIR(object):
         i_end = s_end + e_end # 3 * self.n_groups, but more efficient...
 
         exposed = V[0:s_end,:] * ((self.trans_matrix @ (self.alpha * V[s_end:e_end,:] + V[e_end:i_end,:]))/N)
-        #exposed = V[0:s_end,:] * ((self.trans_matrix @ (self.alpha * V[s_end:e_end,:] + V[e_end:i_end,:])))
         infectious = self.eta * V[s_end:e_end,:]
         recovered = self.gamma * V[e_end:i_end,:]
 
@@ -58,19 +57,17 @@ class StratifiedSEIR(object):
         dV[e_end:i_end,:] = infectious - recovered
         dV[i_end:,:] = recovered
 
-        #print('N:{},E:{}'.format(str(N.shape),str(exposed.shape)))
-
         return dV
 
-    def solve(self,method='RK45'):
+    def solve(self):
         """
         Return the solution provided by scipy.integrate.solve_ivp
         """
         # Note the order of the arguments is important here
-        #print(self.group_ratios)
+        print(self.group_ratios)
         V0 = np.array(list(it.product([self.S0,self.E0,self.I0,self.R0],self.group_ratios))).prod(axis=1)
 
-        return scint.solve_ivp(fun=self.odes, t_span=self.t_span, y0=V0, t_eval=self.t_eval,vectorized=True,method=method)
+        return scint.solve_ivp(fun=self.odes, t_span=self.t_span, y0=V0, t_eval=self.t_eval)
 
     def copy(self):
         return None
