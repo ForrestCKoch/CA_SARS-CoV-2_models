@@ -12,7 +12,7 @@ def get_transmission_matrix(beta,X,Y):
     return beta * Z.reshape(np.repeat(len(X)*len(Y),2))
 
 @njit(cache=True)
-def ode_func(V, trans_matrix, alpha, eta, gamma, n_groups):
+def jit_odes(V, trans_matrix, alpha, eta, gamma, n_groups):
     N = V.sum(axis=0)
     dV = np.zeros(V.shape)
 
@@ -83,10 +83,6 @@ class StratifiedSEIR(object):
 
         return dV
 
-    def odes2(self, t, V):
-        return ode_func(V, self.trans_matrix, self.alpha, self.eta, self.gamma, self.n_groups)
-
-
     def solve(self,method='RK45'):
         """
         Return the solution provided by scipy.integrate.solve_ivp
@@ -97,15 +93,16 @@ class StratifiedSEIR(object):
 
         return scint.solve_ivp(fun=self.odes, t_span=self.t_span, y0=V0, t_eval=self.t_eval,method=method)
 
-    def solve2(self,method='RK45'):
+    def jit_solve(self,method='RK45'):
         """
         Return the solution provided by scipy.integrate.solve_ivp
         """
         # Note the order of the arguments is important here
         #print(self.group_ratios)
         V0 = np.array(list(it.product([self.S0,self.E0,self.I0,self.R0],self.group_ratios))).prod(axis=1)
+        f = lambda t,V: jit_odes(V, self.trans_matrix, self.alpha, self.eta, self.gamma, self.n_groups)
 
-        return scint.solve_ivp(fun=self.odes2, t_span=self.t_span, y0=V0, t_eval=self.t_eval,method=method)
+        return scint.solve_ivp(fun=f, t_span=self.t_span, y0=V0, t_eval=self.t_eval,method=method)
 
     def copy(self):
         return None
