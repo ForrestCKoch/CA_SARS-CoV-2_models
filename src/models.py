@@ -1,8 +1,10 @@
 import math
 import itertools as it
 
+import matplotlib.pyplot as plt
 from numba import njit
 import numpy as np
+import pymc3 as pm
 import scipy as sc
 import scipy.integrate as scint 
 import scipy.stats as scstats
@@ -103,6 +105,29 @@ class StratifiedSEIR(object):
         f = lambda t,V: jit_odes(V, self.trans_matrix, self.alpha, self.eta, self.gamma, self.n_groups)
 
         return scint.solve_ivp(fun=f, t_span=self.t_span, y0=V0, t_eval=self.t_eval,method=method)
+
+    def plot_compartment(self, comp=0, label='Susceptible'):
+        soln = self.jit_solve().y
+        comp_sum = soln[(comp*self.n_groups):((comp+1)*self.n_groups),:].sum(axis=0)
+        plt.plot(comp_sum.T,label=label)
+        plt.xlabel('Time')
+        plt.ylabel('Population')
+
+    def plot_group(self, group=0, label=''):
+        soln = self.jit_solve().y
+        susc = soln[group,:].T
+        expo = soln[(self.n_groups+group),:].T
+        infe = soln[(2*self.n_groups+group),:].T
+        reco = soln[(3*self.n_groups+group),:].T
+        plt.plot(susc, label='Susceptible')
+        plt.plot(expo, label='Exposed')
+        plt.plot(infe, label='Infectious')
+        plt.plot(reco, label='Recoverd')
+        plt.ylim(bottom=0)
+        plt.title(label)
+        plt.legend()
+        plt.show()
+
 
     def copy(self):
         return None
