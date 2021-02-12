@@ -15,10 +15,14 @@ group_ratios = np.repeat(1/n_groups,n_groups)
 seir = StratifiedSEIR(trans_matrix,group_ratios,np.arange(0,100),
         0.1,0.22,1/7,1/3)
 
-#print(seir.solve())
-print('RK45: {}'.format(timeit.timeit(lambda: seir.solve(method='RK45'),number=100)))
-print('RK23: {}'.format(timeit.timeit(lambda: seir.solve(method='RK23'),number=100)))
-print('DOP853: {}'.format(timeit.timeit(lambda: seir.solve(method='DOP853'),number=100)))
-print('Radau: {}'.format(timeit.timeit(lambda: seir.solve(method='Radau'),number=100)))
-print('BDF: {}'.format(timeit.timeit(lambda: seir.solve(method='BDF'),number=100)))
-print('LSODA: {}'.format(timeit.timeit(lambda: seir.solve(method='LSODA'),number=100)))
+"""
+print('RK45: {}'.format(timeit.timeit(lambda: seir.solve(method='RK45'),number=1000)))
+print('RK23: {}'.format(timeit.timeit(lambda: seir.solve(method='RK23'),number=1000)))
+print('DOP853: {}'.format(timeit.timeit(lambda: seir.solve(method='DOP853'),number=1000)))
+print('Radau: {}'.format(timeit.timeit(lambda: seir.solve(method='Radau'),number=1000)))
+print('BDF: {}'.format(timeit.timeit(lambda: seir.solve(method='BDF'),number=1000)))
+print('LSODA: {}'.format(timeit.timeit(lambda: seir.solve(method='LSODA'),number=1000)))
+"""
+print(seir.solve(method='RK45').y)
+print('##############')
+print(seir.solve(method='BDF').y)
