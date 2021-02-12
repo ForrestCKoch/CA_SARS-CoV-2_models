@@ -1,0 +1,8 @@
+pandas
+numpy
+httpstan
+pystan==3.0.0b8
+numba
+pymc3
+scipy
+matplotlib
