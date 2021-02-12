@@ -1,7 +1,9 @@
 import timeit
 
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import numba
 
 from models import get_transmission_matrix, StratifiedSEIR
 
@@ -16,13 +18,23 @@ seir = StratifiedSEIR(trans_matrix,group_ratios,np.arange(0,100),
         0.1,0.22,1/7,1/3)
 
 """
-print('RK45: {}'.format(timeit.timeit(lambda: seir.solve(method='RK45'),number=1000)))
 print('RK23: {}'.format(timeit.timeit(lambda: seir.solve(method='RK23'),number=1000)))
 print('DOP853: {}'.format(timeit.timeit(lambda: seir.solve(method='DOP853'),number=1000)))
 print('Radau: {}'.format(timeit.timeit(lambda: seir.solve(method='Radau'),number=1000)))
 print('BDF: {}'.format(timeit.timeit(lambda: seir.solve(method='BDF'),number=1000)))
 print('LSODA: {}'.format(timeit.timeit(lambda: seir.solve(method='LSODA'),number=1000)))
 """
-print(seir.solve(method='RK45').y)
-print('##############')
-print(seir.solve(method='BDF').y)
+#print('Baseline: {}'.format(timeit.timeit(seir.solve,number=1000)))
+#print('Jit: {}'.format(timeit.timeit(seir.jit_solve,number=1000)))
+
+"""
+seir.plot_compartment(comp=0)
+seir.plot_compartment(comp=1,label='Exposed')
+seir.plot_compartment(comp=2,label='Infectious')
+seir.plot_compartment(comp=3,label='Recovered')
+plt.legend()
+plt.tight_layout()
+plt.show()
+"""
+seir.plot_group(0)
+plt.show()
