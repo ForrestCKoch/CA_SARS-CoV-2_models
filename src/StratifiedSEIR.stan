@@ -1,30 +1,31 @@
 functions {
   vector strat_seir(real t, vector V, real[] p, int n_groups, matrix trans_matrix){
 
-    vector[size(V)] dV;
+    //vector[size(V)] dV;
+    vector[num_elements(V)] dV;
     real N = sum(V);
     int s_end;
     int e_end;
     int i_end;
     int r_end;
+    vector[n_groups] exposed;
+    vector[n_groups] infectious;
+    vector[n_groups] recovered;
 
     s_end = n_groups;
     e_end = 2 * s_end;
     i_end = s_end+e_end; // 3*n_groups
     r_end = 4 * n_groups;
 
-    vector[n_groups] exposed;
-    vector[n_groups] infectious;
-    vector[n_groups] recovered;
 
-    exposed = p[1] * (V[1:s_end] .* (trans_matrix * (p[1] * V[s_end:e_end] + V[e_end:i_end]))/N);
-    infectious = p[3] * V[s_end:e_end];
-    recovered = p[2] * V[e_end:i_end];
+    exposed = p[1] * (V[1:s_end] .* (trans_matrix * (p[1] * V[(s_end+1):e_end] + V[(e_end+1):i_end]))/N);
+    infectious = p[3] * V[(s_end+1):e_end];
+    recovered = p[2] * V[(e_end+1):i_end];
 
-    dV[0:s_end] = -1 * exposed;
-    dV[s_end:e_end] = exposed - infectious;
-    dV[e_end:i_end] = infectious - recovered;
-    dV[i_end:r_end] = recovered;
+    dV[1:s_end] = -1 * exposed;
+    dV[(s_end+1):e_end] = exposed - infectious;
+    dV[(e_end+1):i_end] = infectious - recovered;
+    dV[(i_end+1):r_end] = recovered;
 
     return dV;
   }
@@ -46,6 +47,19 @@ data {
 
 transformed data{
   vector[4*n_groups] init;
+
+  /*
+  print("Init Comps ",init_compartments);
+  print("Ngroups ",n_groups);
+  print("ntp ", number_time_points);
+  print("np ", number_parameters);
+  print("nv ", number_variables);
+  print("t0 ", t_start);
+  print("ts ", time_series);
+  print("is ", incidence_data);
+  print("tm ", trans_matrix);
+  */
+
   for (i in 1:4){
     for (j in 1:n_groups){
       init[(n_groups*(i-1))+j] = init_compartments[i]*group_ratios[j];
@@ -61,19 +75,19 @@ parameters{
    * 3. gamma
    * 4. eta
   */
-  real<lower=0.0> a; // alpha
-  real<lower=0.0> b; // beta
+  //real a; // alpha
+  real b; // beta
 }
 
 transformed parameters{
   vector[number_variables] x_hat[number_time_points]; // output from the ODE solver
   real<lower=0> model_incidence[number_time_points-1]; // diff of output from ODE solver to calculate incidence
   real params[number_parameters];
-  params[1] = a;
-  params[2] = b;
-  params[3] = 1/5;
-  params[4] = 1/3;
 
+  params[1] = 0.0;
+  params[2] = b;
+  params[3] = 1.0/5.0;
+  params[4] = 1.0/3.0;
 
   x_hat = ode_rk45(strat_seir, init, t_start, time_series, params, n_groups, trans_matrix);
 
@@ -94,13 +108,13 @@ model {
   params[3] = 1/5; // gamma
   params[4] = 1/3; // eta
   */
-  a ~ uniform(0,1); // alpha
+  //a ~ uniform(0,1); // alpha
   b ~ gamma(1.1,2.5); // beta
   
-
   for (t in 1:number_time_points-1) {
     incidence_data[t] ~ poisson(model_incidence[t]);
   }
+  print(incidence_data);
 }
 
 generated quantities{
