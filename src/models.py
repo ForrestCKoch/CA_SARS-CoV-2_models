@@ -13,8 +13,9 @@ def get_transmission_matrix(beta,X,Y):
     Z = np.array(list(it.product(X.flatten(),Y.flatten()))).prod(axis=1)
     return beta * Z.reshape(np.repeat(len(X)*len(Y),2))
 
+"""
 @njit(cache=True)
-def jit_odes(V, trans_matrix, alpha, eta, gamma, n_groups):
+def jit_odes(V, trans_matrix, alpha, beta, gamma, eta, n_groups):
     N = V.sum(axis=0)
     dV = np.zeros(V.shape)
 
@@ -22,7 +23,28 @@ def jit_odes(V, trans_matrix, alpha, eta, gamma, n_groups):
     e_end = 2 * s_end
     i_end = s_end + e_end # 3 * self.n_groups, but more efficient...
 
-    exposed = V[0:s_end] * ((trans_matrix @ (alpha * V[s_end:e_end] + V[e_end:i_end]))/N)
+    exposed = beta * V[0:s_end] * ((trans_matrix @ (alpha * V[s_end:e_end] + V[e_end:i_end]))/N)
+    infectious = eta * V[s_end:e_end]
+    recovered = gamma * V[e_end:i_end]
+
+    dV[0:s_end] = -1 * exposed
+    dV[s_end:e_end] = exposed - infectious
+    dV[e_end:i_end] = infectious - recovered
+    dV[i_end:] = recovered
+    return dV
+"""
+@njit(cache=True)
+def jit_odes(t, V, trans_matrix, alpha, beta, gamma, eta, n_groups, beta2, k, x0):
+    N = V.sum(axis=0)
+    dV = np.zeros(V.shape)
+
+    s_end = n_groups
+    e_end = 2 * s_end
+    i_end = s_end + e_end # 3 * self.n_groups, but more efficient...
+
+    b = (beta-beta2)/(1+np.exp(-k*(x0-t))) + beta2
+
+    exposed = b * V[0:s_end] * ((trans_matrix @ (alpha * V[s_end:e_end] + V[e_end:i_end]))/N)
     infectious = eta * V[s_end:e_end]
     recovered = gamma * V[e_end:i_end]
 
@@ -35,7 +57,8 @@ def jit_odes(V, trans_matrix, alpha, eta, gamma, n_groups):
 class StratifiedSEIR(object):
 
     def __init__(self, trans_matrix, group_ratios, t_eval, alpha, beta, gamma, eta, 
-            S0=(1-1e-4), E0=1e-4, I0=0, R0=0):
+            k, x0,
+            S0=(1-1e-4), E0=1e-4, I0=0, R0=0, beta2=0):
 
         self.trans_matrix = trans_matrix
         self.group_ratios = group_ratios
@@ -43,12 +66,16 @@ class StratifiedSEIR(object):
         self.t_span = (np.min(t_eval),np.max(t_eval))
         self.alpha = alpha
         self.beta = beta
+        self.beta2 = beta2
         self.gamma = gamma
         self.eta = eta
         self.S0 = S0
         self.E0 = E0
         self.I0 = I0
         self.R0 = R0
+
+        self.k = k
+        self.x0 =x0
 
         self.n_comps = 4
         self.n_groups = trans_matrix.shape[0]
@@ -102,7 +129,7 @@ class StratifiedSEIR(object):
         # Note the order of the arguments is important here
         #print(self.group_ratios)
         V0 = np.array(list(it.product([self.S0,self.E0,self.I0,self.R0],self.group_ratios))).prod(axis=1)
-        f = lambda t,V: jit_odes(V, self.trans_matrix, self.alpha, self.eta, self.gamma, self.n_groups)
+        f = lambda t,V: jit_odes(t, V, self.trans_matrix, self.alpha, self.beta, self.gamma, self.eta, self.n_groups, self.beta2, self.k, self.x0)
 
         return scint.solve_ivp(fun=f, t_span=self.t_span, y0=V0, t_eval=self.t_eval,method=method)
 

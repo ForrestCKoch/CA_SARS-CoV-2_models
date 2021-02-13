@@ -18,9 +18,10 @@ functions {
     r_end = 4 * n_groups;
 
 
-    exposed = p[1] * (V[1:s_end] .* (trans_matrix * (p[1] * V[(s_end+1):e_end] + V[(e_end+1):i_end]))/N);
+    exposed = p[2] * (V[1:s_end] .* (trans_matrix * (p[1] * V[(s_end+1):e_end] + V[(e_end+1):i_end]))/N);
+    ////print((trans_matrix * (p[1] * V[(s_end+1):e_end] + V[(e_end+1):i_end])));
     infectious = p[3] * V[(s_end+1):e_end];
-    recovered = p[2] * V[(e_end+1):i_end];
+    recovered = p[4] * V[(e_end+1):i_end];
 
     dV[1:s_end] = -1 * exposed;
     dV[(s_end+1):e_end] = exposed - infectious;
@@ -76,27 +77,31 @@ parameters{
    * 4. eta
   */
   //real a; // alpha
-  real b; // beta
+  real<lower=0> b; // beta
+  //real<lower=1> p1;
+  //real<lower=1> p2;
 }
 
 transformed parameters{
   vector[number_variables] x_hat[number_time_points]; // output from the ODE solver
-  real<lower=0> model_incidence[number_time_points-1]; // diff of output from ODE solver to calculate incidence
+  //real<lower=0> model_incidence[number_time_points-1]; // diff of output from ODE solver to calculate incidence
+  vector<lower=0>[number_time_points-1] model_incidence; // diff of output from ODE solver to calculate incidence
   real params[number_parameters];
 
   params[1] = 0.0;
   params[2] = b;
-  params[3] = 1.0/5.0;
-  params[4] = 1.0/3.0;
+  params[3] = 1.0/3.0;
+  params[4] = 1.0/5.0;
 
-  x_hat = ode_rk45(strat_seir, init, t_start, time_series, params, n_groups, trans_matrix);
+  x_hat = ode_bdf(strat_seir, init, t_start, time_series, params, n_groups, trans_matrix);
+  //print(x_hat);
 
   for (i in 1:number_time_points-1){
-    if(x_hat[i+1, 4] - x_hat[i, 4]<1e-5){
+    if(sum(params[3] * x_hat[i,3:4])<1e-5){
       model_incidence[i] = 0.0;
     }
     else{
-      model_incidence[i] = x_hat[i+1, 4] - x_hat[i, 4];
+      model_incidence[i] = sum(params[3] * x_hat[i,3:4]);
     }
   }
 }
@@ -109,19 +114,24 @@ model {
   params[4] = 1/3; // eta
   */
   //a ~ uniform(0,1); // alpha
-  b ~ gamma(1.1,2.5); // beta
+  //p1 ~ cauchy(1,1);
+  //p2 ~ cauchy(1,1);
+  //b ~ gamma(p1,p2); // beta
+  b ~ cauchy(0,.1);
   
   for (t in 1:number_time_points-1) {
     incidence_data[t] ~ poisson(model_incidence[t]);
   }
-  print(incidence_data);
+  //print(incidence_data);
+  //print(model_incidence);
 }
 
 generated quantities{
+  /*
   vector[number_variables] sim_x_hat[number_time_points];
   real sim_incidence[number_time_points-1];
 
-  sim_x_hat = ode_rk45(strat_seir, init, t_start, time_series, params, n_groups, trans_matrix);
+  sim_x_hat = ode_bdf(strat_seir, init, t_start, time_series, params, n_groups, trans_matrix);
 
   for (t in 1:number_time_points-1){
     if(sim_x_hat[t+1, 4] - sim_x_hat[t, 4]<1e-5){
@@ -131,4 +141,5 @@ generated quantities{
       sim_incidence[t] =  sim_x_hat[t+1, 4] - sim_x_hat[t, 4];
     }
   }
+  */
 }
