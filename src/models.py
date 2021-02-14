@@ -44,12 +44,24 @@ def jit_odes(t, V, trans_matrix, alpha, beta, gamma, eta, n_groups, beta2, k, x0
 
     b = (beta-beta2)/(1+np.exp(-k*(x0-t))) + beta2
 
+    """
     exposed = b * V[0:s_end] * ((trans_matrix @ (alpha * V[s_end:e_end] + V[e_end:i_end]))/N)
     infectious = eta * V[s_end:e_end]
     recovered = gamma * V[e_end:i_end]
 
     dV[0:s_end] = -1 * exposed
     dV[s_end:e_end] = exposed - infectious
+    dV[e_end:i_end] = infectious - recovered
+    dV[i_end:] = recovered
+    """
+
+    exposed = 0
+    infectious = b * V[0:s_end] * ((trans_matrix @ (V[e_end:i_end]))/N)
+    #infectious = eta * V[s_end:e_end]
+    recovered = gamma * V[e_end:i_end]
+
+    dV[0:s_end] = -1 * infectious
+    dV[s_end:e_end] = exposed
     dV[e_end:i_end] = infectious - recovered
     dV[i_end:] = recovered
     return dV
@@ -155,6 +167,11 @@ class StratifiedSEIR(object):
         plt.legend()
         plt.show()
 
+    def plot_incidence(self):
+        soln = self.jit_solve().y
+        incd = -np.diff(soln[0,:]).T
+        plt.plot(incd, label='incidence')
+        
 
     def copy(self):
         return None
