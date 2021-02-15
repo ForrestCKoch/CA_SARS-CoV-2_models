@@ -47,17 +47,21 @@ plt.plot(np.arange(0,180),beta_eff)
 plt.xlabel('Time (days)')
 plt.ylabel('Beta (effective)')
 plt.savefig('../results/plots/beta_over_time.pdf')
+plt.clf()
 
+"""
 seir.plot_incidence()
 plt.plot(np.arange(0,180),daily_cases.newcountconfirmed[20:200],label='observed')
 plt.legend()
 plt.tight_layout()
 plt.savefig('../results/plots/model_fit.pdf')
+"""
 
 inference_data = az.from_cmdstan('../results/outputs/*.csv')
 az.plot_trace(inference_data)
 plt.savefig('../results/plots/model_trace.pdf')
 az.plot_joint(inference_data,var_names=['beta_start','beta_end'],kind='kde',figsize=(6,6))
+plt.tight_layout()
 plt.savefig('../results/plots/model_joint_betas.pdf')
 az.plot_posterior(inference_data)
 plt.savefig('../results/plots/model_posterior.pdf')
