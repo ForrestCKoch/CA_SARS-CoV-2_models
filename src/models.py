@@ -51,7 +51,7 @@ class TimeVaryingSLAPIR(object):
     def _check_params(self):
         pass
 
-    def jit_solve(self,method='RK45'):
+    def jit_solve(self,method='BDF'):
         """
         Return the solution provided by scipy.integrate.solve_ivp
         """
