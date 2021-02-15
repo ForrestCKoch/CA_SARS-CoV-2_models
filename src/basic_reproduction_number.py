@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-def get_reproduction_number(beta=0.12,S=1):
+def get_reproduction_number(beta=0.115,S=1):
 
     F = np.zeros(shape=(28,28))
     F[0,0:16] = 0.2*beta*S
