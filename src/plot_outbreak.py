@@ -53,6 +53,8 @@ for i in range(5000):
 
 az.plot_hdi(t_eval, incidence, hdi_prob=0.95)
 plt.plot(np.arange(0,180),daily_cases.newcountconfirmed[20:200])
+plt.xlabel('Time (days)')
+plt.ylabel('Incidence')
 plt.tight_layout()
 #plt.show()
 plt.savefig('../results/plots/model_fit.pdf')
